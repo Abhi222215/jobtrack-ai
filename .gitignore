@@ -218,3 +218,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Environment & secrets
+.env
+.env.local
+
+# Node / Next.js
+node_modules/
+.next/
+
+# OS / Editor
+.DS_Store
+.vscode/
