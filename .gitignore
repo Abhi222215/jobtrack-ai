@@ -230,3 +230,4 @@ node_modules/
 # OS / Editor
 .DS_Store
 .vscode/
+*.db
