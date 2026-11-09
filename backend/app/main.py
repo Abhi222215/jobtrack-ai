@@ -19,3 +19,7 @@ app.include_router(jobs.router)
 @app.get("/")
 def root():
     return {"message": "JobTrack AI is running"}
+from .routers import jobs, analysis
+...
+app.include_router(jobs.router)
+app.include_router(analysis.router)

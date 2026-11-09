@@ -17,3 +17,15 @@ class JobOut(JobBase):
     id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class AnalysisRequest(BaseModel):
+    cv_text: str
+
+class AnalysisOut(BaseModel):
+    id: int
+    job_id: int
+    match_score: int
+    missing_skills: list[str]
+    suggestions: list[str]
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
