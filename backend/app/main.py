@@ -2,14 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
 from .routers import jobs
+import os
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="JobTrack AI")
+origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
