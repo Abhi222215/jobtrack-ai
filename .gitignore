@@ -231,3 +231,12 @@ node_modules/
 .DS_Store
 .vscode/
 *.db
+.env
+.env.local
+.venv/
+venv/
+*.db
+__pycache__/
+.pytest_cache/
+node_modules/
+.next/
