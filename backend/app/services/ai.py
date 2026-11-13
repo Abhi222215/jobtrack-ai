@@ -1,5 +1,7 @@
-import json
 import os
+import json
+import re
+
 import httpx
 from dotenv import load_dotenv
 
@@ -21,27 +23,38 @@ Be honest and specific. Give at most 6 items in each list."""
 
 
 def analyze_cv(cv_text: str, company: str, role: str, description: str) -> dict:
-    response = httpx.post(
-        f"{BASE_URL}/chat/completions",
-        headers={"Authorization": f"Bearer {API_KEY}"},
-        json={
-            "model": MODEL,
-            "temperature": 0.2,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": (
-                        f"Company: {company}\nRole: {role}\n\n"
-                        f"JOB DESCRIPTION:\n{description}\n\n"
-                        f"CANDIDATE CV:\n{cv_text}"
-                    ),
-                },
-            ],
-        },
-        timeout=60,
-    )
-    response.raise_for_status()
-    text = response.json()["choices"][0]["message"]["content"]
-    text = text.replace("```json", "").replace("```", "").strip()
-    return json.loads(text)
+    if not API_KEY:
+        raise RuntimeError("LLM_API_KEY is not configured")
+
+    try:
+        response = httpx.post(
+            f"{BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json={
+                "model": MODEL,
+                "temperature": 0.2,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Company: {company}\nRole: {role}\n\n"
+                            f"JOB DESCRIPTION:\n{description}\n\n"
+                            f"CANDIDATE CV:\n{cv_text}"
+                        ),
+                    },
+                ],
+            },
+            timeout=httpx.Timeout(35.0, connect=10.0),
+        )
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+        if not isinstance(content, str):
+            raise ValueError("The AI provider returned an empty response")
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip(), flags=re.IGNORECASE)
+        result = json.loads(text)
+        if not isinstance(result, dict):
+            raise ValueError("The AI provider returned an invalid response")
+        return result
+    except (httpx.HTTPError, KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("AI provider request failed") from exc
