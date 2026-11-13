@@ -16,16 +16,18 @@ def analyze_job(job_id: int, body: schemas.AnalysisRequest, db: Session = Depend
         raise HTTPException(status_code=400, detail="Add a job description first")
 
     try:
-        result = analyze_cv(body.cv_text, job.company, job.role, job.description)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"AI analysis failed: {e}")
+        raw_result = analyze_cv(body.cv_text, job.company, job.role, job.description)
+        result = schemas.AnalysisResult.model_validate(raw_result)
+    except Exception as exc:
+        # Keep provider credentials, response bodies, and internal errors out of API responses.
+        raise HTTPException(status_code=502, detail="AI analysis is temporarily unavailable. Please try again.") from exc
 
     analysis = models.Analysis(
         job_id=job_id,
         cv_text=body.cv_text,
-        match_score=int(result["match_score"]),
-        missing_skills=result["missing_skills"],
-        suggestions=result["suggestions"],
+        match_score=result.match_score,
+        missing_skills=result.missing_skills,
+        suggestions=result.suggestions,
     )
     db.add(analysis)
     db.commit()
@@ -35,6 +37,8 @@ def analyze_job(job_id: int, body: schemas.AnalysisRequest, db: Session = Depend
 
 @router.get("/jobs/{job_id}/analyses", response_model=list[schemas.AnalysisOut])
 def list_analyses(job_id: int, db: Session = Depends(get_db)):
+    if not db.get(models.Job, job_id):
+        raise HTTPException(status_code=404, detail="Job not found")
     return (
         db.query(models.Analysis)
         .filter(models.Analysis.job_id == job_id)
